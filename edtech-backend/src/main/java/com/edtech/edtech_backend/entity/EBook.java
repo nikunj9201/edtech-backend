@@ -1,5 +1,6 @@
-package com.edtech.edtech_backend.model;
-import com.edtech.edtech_backend.entity.Course;
+package com.edtech.edtech_backend.entity;
+
+import com.edtech.edtech_backend.model.ContentAccessType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,6 +29,7 @@ public class EBook {
     @Column(name = "ebook_url", nullable = false)
     private String ebookUrl;
 
-    @Column(name = "is_free", nullable = false)
-    private boolean isFree = false;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ContentAccessType accessType = ContentAccessType.FREE;
 }

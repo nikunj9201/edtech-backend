@@ -1,6 +1,6 @@
 package com.edtech.edtech_backend.repository;
 
-import com.edtech.edtech_backend.model.TestSeries;
+import com.edtech.edtech_backend.entity.TestSeries; // Corrected import
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

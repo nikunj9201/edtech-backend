@@ -1,5 +1,6 @@
 package com.edtech.edtech_backend.entity;
 
+import com.edtech.edtech_backend.model.ContentAccessType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,4 +28,8 @@ public class Syllabus {
 
     @Column(name = "syllabus_url", nullable = false)
     private String syllabusUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ContentAccessType accessType = ContentAccessType.FREE;
 }

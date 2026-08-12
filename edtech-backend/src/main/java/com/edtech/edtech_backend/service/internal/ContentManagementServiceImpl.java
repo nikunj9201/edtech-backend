@@ -1,15 +1,16 @@
 package com.edtech.edtech_backend.service.internal;
 
+import com.edtech.edtech_backend.dto.ContentResponseDto;
 import com.edtech.edtech_backend.dto.QuizUploadDto;
 import com.edtech.edtech_backend.dto.TestPaperUploadDto;
 import com.edtech.edtech_backend.dto.VideoUploadDto;
 import com.edtech.edtech_backend.entity.*;
-import com.edtech.edtech_backend.model.*;
+import com.edtech.edtech_backend.model.ContentAccessType;
 import com.edtech.edtech_backend.repository.*;
 import com.edtech.edtech_backend.service.ContentManagementService;
+import com.edtech.edtech_backend.service.SubscriptionAccessService;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -20,21 +21,18 @@ public class ContentManagementServiceImpl implements ContentManagementService {
     private final TestSeriesRepository testSeriesRepository;
     private final QuizRepository quizRepository;
     private final CourseRepository courseRepository;
-    private final SubscriptionRepository subscriptionRepository;
-    private final UserRepository userRepository;
+    private final SubscriptionAccessService subscriptionAccessService;
 
     public ContentManagementServiceImpl(VideoContentRepository videoContentRepository,
                                         TestSeriesRepository testSeriesRepository,
                                         QuizRepository quizRepository,
                                         CourseRepository courseRepository,
-                                        SubscriptionRepository subscriptionRepository,
-                                        UserRepository userRepository) {
+                                        SubscriptionAccessService subscriptionAccessService) {
         this.videoContentRepository = videoContentRepository;
         this.testSeriesRepository = testSeriesRepository;
         this.quizRepository = quizRepository;
         this.courseRepository = courseRepository;
-        this.subscriptionRepository = subscriptionRepository;
-        this.userRepository = userRepository;
+        this.subscriptionAccessService = subscriptionAccessService;
     }
 
     // Admin methods
@@ -46,7 +44,7 @@ public class ContentManagementServiceImpl implements ContentManagementService {
         video.setTitle(dto.getTitle());
         video.setCourse(course);
         video.setVideoUrl(dto.getVideoUrl());
-        video.setFreeSample(dto.isFreeSample());
+        video.setAccessType(dto.getAccessType()); // Use accessType from DTO
         return videoContentRepository.save(video);
     }
 
@@ -57,7 +55,7 @@ public class ContentManagementServiceImpl implements ContentManagementService {
         TestSeries testSeries = new TestSeries();
         testSeries.setTitle(dto.getTitle());
         testSeries.setCourse(course);
-        testSeries.setFree(dto.isFree());
+        testSeries.setAccessType(dto.getAccessType()); // Use accessType from DTO
         // In a real app, you'd set the paper URL here
         return testSeriesRepository.save(testSeries);
     }
@@ -69,61 +67,47 @@ public class ContentManagementServiceImpl implements ContentManagementService {
         Quiz quiz = new Quiz();
         quiz.setTitle(dto.getTitle());
         quiz.setCourse(course);
-        quiz.setFree(dto.isFree());
+        quiz.setAccessType(dto.getAccessType()); // Use accessType from DTO
         return quizRepository.save(quiz);
     }
 
     // Student methods
     @Override
-    public List<VideoContent> getVideosByCourse(Long courseId, Long userId) {
-        boolean isSubscribed = isUserSubscribed(userId, courseId);
+    public List<ContentResponseDto<VideoContent>> getVideosByCourse(Long courseId, User user) {
         List<VideoContent> allVideos = videoContentRepository.findByCourseId(courseId);
+        boolean hasActiveSubscription = subscriptionAccessService.hasActiveSubscription(user);
 
-        if (isSubscribed) {
-            return allVideos;
-        } else {
-            return allVideos.stream()
-                    .filter(VideoContent::isFreeSample)
-                    .collect(Collectors.toList());
-        }
+        return allVideos.stream().map(video -> {
+            boolean isLocked = video.getAccessType() == ContentAccessType.PREMIUM && !hasActiveSubscription;
+            // For premium content that is locked, you might want to clear the URL
+            if (isLocked) {
+                video.setVideoUrl(null); // Clear URL if locked
+            }
+            return new ContentResponseDto<>(video, isLocked, video.getAccessType());
+        }).collect(Collectors.toList());
     }
 
     @Override
-    public List<TestSeries> getTestPapersByCourse(Long courseId, Long userId) {
-        boolean isSubscribed = isUserSubscribed(userId, courseId);
-        List<TestSeries> allTestPapers = testSeriesRepository.findByCourseId(courseId);
+    public List<ContentResponseDto<TestSeries>> getTestPapersByCourse(Long courseId, User user) {
+        List<TestSeries> allTestSeries = testSeriesRepository.findByCourseId(courseId);
+        boolean hasActiveSubscription = subscriptionAccessService.hasActiveSubscription(user);
 
-        if (isSubscribed) {
-            return allTestPapers;
-        } else {
-            return allTestPapers.stream()
-                    .filter(TestSeries::isFree)
-                    .collect(Collectors.toList());
-        }
+        return allTestSeries.stream().map(testSeries -> {
+            boolean isLocked = testSeries.getAccessType() == ContentAccessType.PREMIUM && !hasActiveSubscription;
+            // You might clear sensitive test paper data if locked
+            return new ContentResponseDto<>(testSeries, isLocked, testSeries.getAccessType());
+        }).collect(Collectors.toList());
     }
 
     @Override
-    public List<Quiz> getQuizzesByCourse(Long courseId, Long userId) {
-        boolean isSubscribed = isUserSubscribed(userId, courseId);
+    public List<ContentResponseDto<Quiz>> getQuizzesByCourse(Long courseId, User user) {
         List<Quiz> allQuizzes = quizRepository.findByCourseId(courseId);
+        boolean hasActiveSubscription = subscriptionAccessService.hasActiveSubscription(user);
 
-        if (isSubscribed) {
-            return allQuizzes;
-        } else {
-            return allQuizzes.stream()
-                    .filter(Quiz::isFree)
-                    .collect(Collectors.toList());
-        }
-    }
-
-    private boolean isUserSubscribed(Long userId, Long courseId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        Course course = courseRepository.findById(courseId)
-                .orElseThrow(() -> new RuntimeException("Course not found"));
-
-        return subscriptionRepository.findByUserAndCourse(user, course)
-                .map(sub -> sub.isActive() && sub.getEndDate().isAfter(LocalDate.now()))
-                .orElse(false);
+        return allQuizzes.stream().map(quiz -> {
+            boolean isLocked = quiz.getAccessType() == ContentAccessType.PREMIUM && !hasActiveSubscription;
+            // You might clear sensitive quiz data if locked
+            return new ContentResponseDto<>(quiz, isLocked, quiz.getAccessType());
+        }).collect(Collectors.toList());
     }
 }

@@ -1,5 +1,6 @@
-package com.edtech.edtech_backend.model;
+package com.edtech.edtech_backend.entity;
 
+import com.edtech.edtech_backend.model.ContentAccessType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -29,6 +30,7 @@ public class CurrentAffairs {
     @Column(name = "published_date", nullable = false)
     private LocalDate publishedDate;
 
-    @Column(name = "is_free", nullable = false)
-    private boolean isFree = false;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ContentAccessType accessType = ContentAccessType.FREE;
 }

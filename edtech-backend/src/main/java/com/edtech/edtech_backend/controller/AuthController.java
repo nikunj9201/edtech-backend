@@ -1,10 +1,11 @@
 package com.edtech.edtech_backend.controller;
 
+import com.edtech.edtech_backend.dto.JwtAuthResponse;
 import com.edtech.edtech_backend.dto.LoginDto;
+import com.edtech.edtech_backend.dto.OtpVerificationRequestDto;
 import com.edtech.edtech_backend.dto.SignUpDto;
-import com.edtech.edtech_backend.dto.VerifyOtpDto;
+import com.edtech.edtech_backend.entity.User;
 import com.edtech.edtech_backend.service.AuthService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,29 +23,24 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody SignUpDto signUpDto) {
-        authService.generateAndSendOtp(signUpDto.getEmail());
+    public ResponseEntity<String> requestRegistration(@RequestBody SignUpDto signUpDto) {
+        authService.requestRegistration(signUpDto);
         return ResponseEntity.ok("OTP sent to your email. Please verify to complete registration.");
     }
 
-    @PostMapping("/verify-otp")
-    public ResponseEntity<String> verifyOtp(@RequestBody VerifyOtpDto verifyOtpDto) {
-        if (authService.verifyOtp(verifyOtpDto)) {
-            SignUpDto signUpDto = new SignUpDto();
-            signUpDto.setEmail(verifyOtpDto.getEmail());
-            signUpDto.setPassword(verifyOtpDto.getPassword());
-            signUpDto.setContactNumber(verifyOtpDto.getContactNumber());
-            signUpDto.setCountry(verifyOtpDto.getCountry());
-            authService.register(signUpDto);
-            return ResponseEntity.ok("User registered successfully!");
-        } else {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid OTP.");
+    @PostMapping("/verify")
+    public ResponseEntity<String> verifyAndRegister(@RequestBody OtpVerificationRequestDto verificationDto) {
+        try {
+            User newUser = authService.completeRegistration(verificationDto);
+            return ResponseEntity.ok("User registered successfully! Welcome, " + newUser.getName());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginDto loginDto) {
-        String token = authService.login(loginDto);
-        return ResponseEntity.ok(token);
+    public ResponseEntity<JwtAuthResponse> login(@RequestBody LoginDto loginDto) {
+        JwtAuthResponse response = authService.login(loginDto);
+        return ResponseEntity.ok(response);
     }
 }

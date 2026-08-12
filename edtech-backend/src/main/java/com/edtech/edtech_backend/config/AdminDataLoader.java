@@ -20,18 +20,21 @@ public class AdminDataLoader implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
+        String adminEmail = "nikunjpatidar8888@gmail.com";
+
         // Check if an admin user already exists
-        if (userRepository.findByEmail("anikunjpatidar8888@gmail.com").isEmpty()) {
+        if (userRepository.findByEmail(adminEmail).isEmpty()) {
             User adminUser = new User();
-            adminUser.setEmail("nikunjpatidar8888@gmail.com");
+            adminUser.setName("Admin User"); // Set a default name
+            adminUser.setEmail(adminEmail);
             adminUser.setPassword(passwordEncoder.encode("Nikunj8888@")); // Set a default password
             adminUser.setRole(Role.ADMIN);
             adminUser.setCountry("IN"); // Set a default country
 
             userRepository.save(adminUser);
-            System.out.println("Admin user created successfully!");
+            System.out.println("Admin user '" + adminEmail + "' created successfully!");
         } else {
-            System.out.println("Admin user already exists.");
+            System.out.println("Admin user '" + adminEmail + "' already exists.");
         }
     }
 }

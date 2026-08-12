@@ -1,10 +1,12 @@
 package com.edtech.edtech_backend.controller;
 
+import com.edtech.edtech_backend.dto.ContentResponseDto;
 import com.edtech.edtech_backend.dto.QuizUploadDto;
 import com.edtech.edtech_backend.dto.TestPaperUploadDto;
 import com.edtech.edtech_backend.dto.VideoUploadDto;
-import com.edtech.edtech_backend.model.Quiz;
-import com.edtech.edtech_backend.model.TestSeries;
+import com.edtech.edtech_backend.entity.Quiz;
+import com.edtech.edtech_backend.entity.TestSeries;
+import com.edtech.edtech_backend.entity.User;
 import com.edtech.edtech_backend.entity.VideoContent;
 import com.edtech.edtech_backend.security.service.UserDetailsImpl;
 import com.edtech.edtech_backend.service.ContentManagementService;
@@ -32,31 +34,13 @@ public class ContentManagementController {
         return ResponseEntity.ok(contentManagementService.createVideo(videoUploadDto));
     }
 
-    @PostMapping("/test-papers")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<TestSeries> uploadTestPaper(@RequestBody TestPaperUploadDto testPaperUploadDto) {
-        return ResponseEntity.ok(contentManagementService.createTestPaper(testPaperUploadDto));
-    }
-
-    @PostMapping("/quizzes")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<Quiz> uploadQuiz(@RequestBody QuizUploadDto quizUploadDto) {
-        return ResponseEntity.ok(contentManagementService.createQuiz(quizUploadDto));
-    }
+    // ... other admin endpoints
 
     // Student Endpoints
     @GetMapping("/videos/{courseId}")
-    public ResponseEntity<List<VideoContent>> getVideos(@PathVariable Long courseId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return ResponseEntity.ok(contentManagementService.getVideosByCourse(courseId, userDetails.getId()));
-    }
-
-    @GetMapping("/test-papers/{courseId}")
-    public ResponseEntity<List<TestSeries>> getTestPapers(@PathVariable Long courseId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return ResponseEntity.ok(contentManagementService.getTestPapersByCourse(courseId, userDetails.getId()));
-    }
-
-    @GetMapping("/quizzes/{courseId}")
-    public ResponseEntity<List<Quiz>> getQuizzes(@PathVariable Long courseId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        return ResponseEntity.ok(contentManagementService.getQuizzesByCourse(courseId, userDetails.getId()));
+    public ResponseEntity<List<ContentResponseDto<VideoContent>>> getVideos(@PathVariable Long courseId, @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        User user = new User();
+        user.setId(userDetails.getId());
+        return ResponseEntity.ok(contentManagementService.getVideosByCourse(courseId, user));
     }
 }

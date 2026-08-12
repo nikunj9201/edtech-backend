@@ -1,5 +1,6 @@
 package com.edtech.edtech_backend.entity;
 
+import com.edtech.edtech_backend.model.ContentAccessType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,6 +29,7 @@ public class Course {
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
 
-    @Column(name = "is_premium", nullable = false)
-    private boolean isPremium = false;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ContentAccessType accessType = ContentAccessType.FREE; // Default to FREE
 }
