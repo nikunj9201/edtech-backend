@@ -21,8 +21,12 @@ public class UserSubscription {
     private User user;
 
     @ManyToOne
-    @JoinColumn(name = "subscription_plan_id", nullable = false)
+    @JoinColumn(name = "subscription_plan_id")
     private SubscriptionPlan plan;
+
+    @ManyToOne
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
 
     @Column(nullable = false)
     private LocalDate startDate;
@@ -34,7 +38,9 @@ public class UserSubscription {
     @Column(nullable = false)
     private SubscriptionStatus status;
 
-    private String paymentId;
+    @ManyToOne
+    @JoinColumn(name = "activated_by_admin_id")
+    private User activatedByAdmin;
 
     @CreationTimestamp
     private LocalDateTime createdAt;

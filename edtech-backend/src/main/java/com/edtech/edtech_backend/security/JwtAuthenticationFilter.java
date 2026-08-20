@@ -1,6 +1,6 @@
 package com.edtech.edtech_backend.security;
 
-import com.edtech.edtech_backend.security.jwt.JwtUtils; // Corrected import
+import com.edtech.edtech_backend.security.jwt.JwtUtils;
 import com.edtech.edtech_backend.security.service.UserDetailsServiceImpl;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-@Component // Added @Component to make it a Spring bean
+@Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
@@ -38,18 +38,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
-            if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
+            
+            // --- DETAILED LOGGING ---
+            if (jwt == null) {
+                logger.warn("JWT Token is null for request: {}", request.getRequestURI());
+            }
 
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities());
-                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            if (jwt != null) {
+                boolean isValid = jwtUtils.validateJwtToken(jwt);
+                logger.info("Request to {}: JWT Token found. Is it valid? -> {}", request.getRequestURI(), isValid);
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                if (isValid) {
+                    String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                    logger.info("Token is valid. Username from token: {}", username);
+
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    logger.info("Authentication successful for user: {}. Roles: {}", username, userDetails.getAuthorities());
+                }
             }
         } catch (Exception e) {
-            logger.error("Cannot set user authentication: {}", e);
+            logger.error("Cannot set user authentication: {}", e.getMessage(), e);
         }
 
         filterChain.doFilter(request, response);
@@ -61,7 +74,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
             return headerAuth.substring(7);
         }
-
+        logger.warn("No JWT 'Bearer' token found in Authorization header for request: {}", request.getRequestURI());
         return null;
     }
 }

@@ -3,16 +3,16 @@ package com.edtech.edtech_backend.entity;
 import com.edtech.edtech_backend.model.ContentAccessType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
+
+import java.math.BigDecimal;
 
 @Entity
 @Table(name = "courses")
 @NoArgsConstructor
 @AllArgsConstructor
-@Getter
-@Setter
+@Data // Includes @Getter, @Setter, @ToString, @EqualsAndHashCode
 public class Course {
 
     @Id
@@ -22,8 +22,18 @@ public class Course {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    private String subtitle;
+
     private String description;
+
+    @Column(length = 1024)
+    private String thumbnailUrl;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal originalPrice;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal discountedPrice;
 
     @ManyToOne
     @JoinColumn(name = "category_id", nullable = false)
@@ -31,5 +41,5 @@ public class Course {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ContentAccessType accessType = ContentAccessType.FREE; // Default to FREE
+    private ContentAccessType accessType = ContentAccessType.FREE;
 }

@@ -1,0 +1,81 @@
+{
+  "info": {
+    "name": "EdTech Backend API",
+    "_postman_id": "edtech-backend-collection",
+    "description": "Basic requests for upload and quiz endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Upload Video (multipart)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            { "key": "file", "type": "file", "src": "" },
+            { "key": "title", "value": "Demo Video", "type": "text" },
+            { "key": "courseId", "value": "1", "type": "text" },
+            { "key": "accessType", "value": "FREE", "type": "text" }
+          ]
+        },
+        "url": { "raw": "{{baseUrl}}/api/uploads/videos", "host": ["{{baseUrl}}"], "path": ["api","uploads","videos"] }
+      }
+    },
+    {
+      "name": "Generate 15 Sample Questions (admin)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/uploads/quizzes/{{quizId}}/generate-sample", "host": ["{{baseUrl}}"], "path": ["api","uploads","quizzes","{{quizId}}","generate-sample"] }
+      }
+    },
+    {
+      "name": "Add Questions (admin)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" }, { "key": "Content-Type", "value": "application/json" } ],
+        "body": {
+          "mode": "raw",
+          "raw": "[ {\n  \"questionText\": \"What is 2+2?\",\n  \"optionA\": \"1\",\n  \"optionB\": \"2\",\n  \"optionC\": \"3\",\n  \"optionD\": \"4\",\n  \"correctOptionIndex\": 3\n} ]"
+        },
+        "url": { "raw": "{{baseUrl}}/api/uploads/quizzes/{{quizId}}/questions", "host": ["{{baseUrl}}"], "path": ["api","uploads","quizzes","{{quizId}}","questions"] }
+      }
+    },
+    {
+      "name": "Submit Quiz Answers",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" } ],
+        "body": { "mode": "raw", "raw": "{ \"answers\": { \"1\": 2, \"2\": 0 } }" },
+        "url": { "raw": "{{baseUrl}}/api/uploads/quizzes/{{quizId}}/submit", "host": ["{{baseUrl}}"], "path": ["api","uploads","quizzes","{{quizId}}","submit"] }
+      }
+    },
+    {
+      "name": "Get Videos By Course",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/content/videos/{{courseId}}", "host": ["{{baseUrl}}"], "path": ["api","content","videos","{{courseId}}"] }
+      }
+    },
+    {
+      "name": "Generate Presigned URL (existing)",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{ \"bucketName\": \"my-bucket\", \"objectKey\": \"videos/my.mp4\" }" },
+        "url": { "raw": "{{baseUrl}}/api/files/generate-presigned-url", "host": ["{{baseUrl}}"], "path": ["api","files","generate-presigned-url"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" },
+    { "key": "quizId", "value": "1" },
+    { "key": "courseId", "value": "1" }
+  ]
+}

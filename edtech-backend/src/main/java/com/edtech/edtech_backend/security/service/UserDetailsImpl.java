@@ -1,6 +1,6 @@
 package com.edtech.edtech_backend.security.service;
 
-import com.edtech.edtech_backend.entity.User; // Corrected import
+import com.edtech.edtech_backend.entity.User;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -15,14 +15,10 @@ public class UserDetailsImpl implements UserDetails {
     private static final long serialVersionUID = 1L;
 
     private Long id;
-
     private String username;
-
     private String email;
-
     @JsonIgnore
     private String password;
-
     private Collection<? extends GrantedAuthority> authorities;
 
     public UserDetailsImpl(Long id, String username, String email, String password,
@@ -35,11 +31,12 @@ public class UserDetailsImpl implements UserDetails {
     }
 
     public static UserDetailsImpl build(User user) {
-        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name()));
+        // THE FIX: Add "ROLE_" prefix to the role name
+        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
 
         return new UserDetailsImpl(
                 user.getId(),
-                user.getEmail(), // Using email as the username
+                user.getEmail(),
                 user.getEmail(),
                 user.getPassword(),
                 authorities);
@@ -90,10 +87,8 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == o.getClass())
-            return false;
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
         UserDetailsImpl user = (UserDetailsImpl) o;
         return Objects.equals(id, user.id);
     }
