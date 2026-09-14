@@ -42,4 +42,8 @@ public class Course {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ContentAccessType accessType = ContentAccessType.FREE;
+
+    @Column(name = "is_premium", nullable = false)
+    private Boolean isPremium = false;
 }
+

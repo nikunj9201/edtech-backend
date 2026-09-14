@@ -3,6 +3,7 @@ package com.edtech.edtech_backend.service.internal;
 import com.edtech.edtech_backend.dto.CourseDto;
 import com.edtech.edtech_backend.entity.Category;
 import com.edtech.edtech_backend.entity.Course;
+import com.edtech.edtech_backend.model.ContentAccessType;
 import com.edtech.edtech_backend.repository.CategoryRepository;
 import com.edtech.edtech_backend.repository.CourseRepository;
 import com.edtech.edtech_backend.service.CourseService;
@@ -30,10 +31,17 @@ public class CourseServiceImpl implements CourseService {
         course.setCategory(category);
         course.setTitle(courseDto.getTitle());
         course.setSubtitle(courseDto.getSubtitle());
+        course.setDescription(courseDto.getDescription());
         course.setThumbnailUrl(courseDto.getThumbnailUrl());
         course.setOriginalPrice(courseDto.getOriginalPrice());
         course.setDiscountedPrice(courseDto.getDiscountedPrice());
-        
+        if (courseDto.getAccessType() != null) {
+            course.setAccessType(courseDto.getAccessType());
+            course.setIsPremium(ContentAccessType.PREMIUM.equals(courseDto.getAccessType()));
+        } else {
+            course.setIsPremium(false);
+        }
+
         return courseRepository.save(course);
     }
 
@@ -47,9 +55,16 @@ public class CourseServiceImpl implements CourseService {
         course.setCategory(category);
         course.setTitle(courseDto.getTitle());
         course.setSubtitle(courseDto.getSubtitle());
+        course.setDescription(courseDto.getDescription());
         course.setThumbnailUrl(courseDto.getThumbnailUrl());
         course.setOriginalPrice(courseDto.getOriginalPrice());
         course.setDiscountedPrice(courseDto.getDiscountedPrice());
+        if (courseDto.getAccessType() != null) {
+            course.setAccessType(courseDto.getAccessType());
+            course.setIsPremium(ContentAccessType.PREMIUM.equals(courseDto.getAccessType()));
+        } else {
+            course.setIsPremium(false);
+        }
 
         return courseRepository.save(course);
     }
