@@ -4,22 +4,32 @@ import com.edtech.edtech_backend.security.JwtAuthenticationFilter;
 import com.edtech.edtech_backend.security.jwt.AuthEntryPointJwt;
 import com.edtech.edtech_backend.security.jwt.JwtUtils;
 import com.edtech.edtech_backend.security.service.UserDetailsServiceImpl;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
 import org.springframework.http.HttpMethod;
+
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+
 import org.springframework.security.config.http.SessionCreationPolicy;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -36,65 +46,208 @@ public class SecurityConfig {
     private final JwtUtils jwtUtils;
 
     @Autowired
-    public SecurityConfig(UserDetailsServiceImpl userDetailsService, AuthEntryPointJwt unauthorizedHandler, JwtUtils jwtUtils) {
+    public SecurityConfig(
+            UserDetailsServiceImpl userDetailsService,
+            AuthEntryPointJwt unauthorizedHandler,
+            JwtUtils jwtUtils) {
+
         this.userDetailsService = userDetailsService;
         this.unauthorizedHandler = unauthorizedHandler;
         this.jwtUtils = jwtUtils;
     }
 
+
+    // =========================================================
+    // JWT FILTER
+    // =========================================================
+
     @Bean
     public JwtAuthenticationFilter authenticationJwtTokenFilter() {
-        return new JwtAuthenticationFilter(jwtUtils, userDetailsService);
+        return new JwtAuthenticationFilter(
+                jwtUtils,
+                userDetailsService
+        );
     }
+
+
+    // =========================================================
+    // AUTHENTICATION PROVIDER
+    // =========================================================
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+
+        DaoAuthenticationProvider authProvider =
+                new DaoAuthenticationProvider();
+
         authProvider.setUserDetailsService(userDetailsService);
         authProvider.setPasswordEncoder(passwordEncoder());
+
         return authProvider;
     }
 
+
+    // =========================================================
+    // AUTHENTICATION MANAGER
+    // =========================================================
+
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration authConfig) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration authConfig) throws Exception {
+
         return authConfig.getAuthenticationManager();
     }
+
+
+    // =========================================================
+    // PASSWORD ENCODER
+    // =========================================================
 
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+
+    // =========================================================
+    // CORS
+    // =========================================================
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // adjust in production
-        configuration.setAllowedMethods(Arrays.asList("GET","POST","PUT","DELETE","OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        configuration.setAllowedOrigins(
+                Arrays.asList(
+                        "http://localhost:3001",
+                        "http://localhost:3000"
+                )
+        );
+
+        configuration.setAllowedMethods(
+                Arrays.asList(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        configuration.setAllowedHeaders(
+                Arrays.asList("*")
+        );
+
         configuration.setAllowCredentials(true);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
         return source;
     }
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.cors(Customizer -> {})
-            .csrf(AbstractHttpConfigurer::disable)
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth ->
-                                        auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                                                // Explicitly allow auth endpoints
-                                                .requestMatchers("/api/auth/register", "/api/auth/verify", "/api/auth/login").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/categories/**", "/api/courses/**").permitAll() // Allow public viewing of categories and courses
-                                                // fallback: any other auth/api endpoints require authentication
-                                                .requestMatchers("/api/auth/**").permitAll()
-                                                .anyRequest().authenticated()
-                                );
 
-        http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+    // =========================================================
+    // SECURITY FILTER CHAIN
+    // =========================================================
+
+    @Bean
+    public SecurityFilterChain filterChain(
+            HttpSecurity http) throws Exception {
+
+        http
+                .cors(cors -> {})
+                .csrf(AbstractHttpConfigurer::disable)
+
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(
+                                unauthorizedHandler
+                        )
+                )
+
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                SessionCreationPolicy.STATELESS
+                        )
+                )
+
+                .authorizeHttpRequests(auth -> auth
+
+                        // -------------------------------------------------
+                        // OPTIONS / CORS PREFLIGHT
+                        // -------------------------------------------------
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
+
+
+                        // -------------------------------------------------
+                        // AUTH APIs
+                        // -------------------------------------------------
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/verify",
+                                "/api/auth/login",
+                                "/api/auth/**"
+                        ).permitAll()
+
+
+                        // -------------------------------------------------
+                        // PUBLIC CATEGORY APIs
+                        // -------------------------------------------------
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/categories/**"
+                        ).permitAll()
+
+
+                        // -------------------------------------------------
+                        // PUBLIC COURSE APIs
+                        // -------------------------------------------------
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/courses/**"
+                        ).permitAll()
+
+
+                        // -------------------------------------------------
+                        // R2 DOWNLOAD URL
+                        //
+                        // TEMPORARILY PUBLIC FOR TESTING
+                        // -------------------------------------------------
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/files/generate-download-url"
+                        ).permitAll()
+
+
+                        // -------------------------------------------------
+                        // EVERYTHING ELSE REQUIRES LOGIN
+                        // -------------------------------------------------
+                        .anyRequest().authenticated()
+                );
+
+
+        // Authentication provider
+        http.authenticationProvider(
+                authenticationProvider()
+        );
+
+
+        // JWT filter
+        http.addFilterBefore(
+                authenticationJwtTokenFilter(),
+                UsernamePasswordAuthenticationFilter.class
+        );
+
 
         return http.build();
     }

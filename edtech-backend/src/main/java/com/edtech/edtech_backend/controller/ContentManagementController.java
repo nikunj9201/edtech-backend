@@ -22,15 +22,26 @@ import java.util.List;
 public class ContentManagementController {
 
     private final ContentManagementService contentManagementService;
+    private final com.edtech.edtech_backend.service.StorageService fileStorageService;
 
-    public ContentManagementController(ContentManagementService contentManagementService) {
+    public ContentManagementController(ContentManagementService contentManagementService, com.edtech.edtech_backend.service.StorageService fileStorageService) {
         this.contentManagementService = contentManagementService;
+        this.fileStorageService = fileStorageService;
     }
 
     // Admin Endpoints
-    @PostMapping("/videos")
+    @PostMapping(path = "/videos", consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<VideoContent> uploadVideo(@RequestBody VideoUploadDto videoUploadDto) {
+    public ResponseEntity<VideoContent> uploadVideoMultipart(@ModelAttribute VideoUploadDto videoUploadDto, org.springframework.web.multipart.MultipartFile file) {
+        // If called via multipart form, client should attach the file in field 'video' or 'file'.
+        if (videoUploadDto.getVideo() == null && file != null && !file.isEmpty()) {
+            videoUploadDto.setVideo(file);
+        }
+        // If a MultipartFile is present, store it using LocalFileStorageService and set storedFileName
+        if (videoUploadDto.getVideo() != null && !videoUploadDto.getVideo().isEmpty()) {
+            String stored = fileStorageService.storeFile(videoUploadDto.getVideo(), "videos");
+            videoUploadDto.setStoredFileName(stored);
+        }
         return ResponseEntity.ok(contentManagementService.createVideo(videoUploadDto));
     }
 

@@ -43,7 +43,8 @@ public class ContentManagementServiceImpl implements ContentManagementService {
         VideoContent video = new VideoContent();
         video.setTitle(dto.getTitle());
         video.setCourse(course);
-        video.setVideoUrl(dto.getVideoUrl());
+        // store internal stored filename/path (not an external URL)
+        video.setVideoUrl(dto.getStoredFileName());
         video.setAccessType(dto.getAccessType()); // Use accessType from DTO
         return videoContentRepository.save(video);
     }

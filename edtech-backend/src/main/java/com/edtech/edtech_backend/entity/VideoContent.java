@@ -1,6 +1,6 @@
 package com.edtech.edtech_backend.entity;
 
-import com.edtech.edtech_backend.model.ContentAccessType; // Import the enum
+import com.edtech.edtech_backend.model.ContentAccessType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -29,7 +29,11 @@ public class VideoContent {
     @Column(name = "video_url", nullable = false)
     private String videoUrl;
 
-    @Enumerated(EnumType.STRING) // Add accessType field
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private ContentAccessType accessType = ContentAccessType.FREE; // Default to FREE
+    private ContentAccessType accessType = ContentAccessType.FREE;
+
+    // ADD THIS
+    @Column(name = "is_free_sample", nullable = false)
+    private boolean freeSample = false;
 }

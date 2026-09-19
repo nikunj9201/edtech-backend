@@ -32,13 +32,16 @@ public class UploadAndQuizController {
     private final ContentManagementService contentManagementService;
     private final QuizRepository quizRepository;
     private final QuizQuestionRepository quizQuestionRepository;
+    private final com.edtech.edtech_backend.service.StorageService fileStorageService;
 
     public UploadAndQuizController(ContentManagementService contentManagementService,
                                    QuizRepository quizRepository,
-                                   QuizQuestionRepository quizQuestionRepository) {
+                                   QuizQuestionRepository quizQuestionRepository,
+                                   com.edtech.edtech_backend.service.StorageService fileStorageService) {
         this.contentManagementService = contentManagementService;
         this.quizRepository = quizRepository;
         this.quizQuestionRepository = quizQuestionRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     @PostMapping("/videos")
@@ -49,19 +52,14 @@ public class UploadAndQuizController {
                                                              @RequestParam(value = "accessType", required = false) ContentAccessType accessType) throws IOException {
         if (accessType == null) accessType = ContentAccessType.FREE;
 
-        Path uploadDir = Paths.get("uploads", "videos").toAbsolutePath();
-        Files.createDirectories(uploadDir);
+        // Store file using configured StorageService (R2 or local) and do NOT expose a public URL in the DTO/request
+        String stored = fileStorageService.storeFile(file, "videos");
 
-        String original = file.getOriginalFilename();
-        String filename = System.currentTimeMillis() + "_" + (original != null ? original.replaceAll("[^a-zA-Z0-9.\\-_]", "_") : "video.mp4");
-        Path target = uploadDir.resolve(filename);
-        file.transferTo(target.toFile());
-
-        // Save DB record using existing service (pass URL that the app will serve)
+        // Save DB record using existing service (store internal stored filename)
         VideoUploadDto dto = new VideoUploadDto();
         dto.setTitle(title);
         dto.setCourseId(courseId);
-        dto.setVideoUrl("/uploads/videos/" + filename);
+        dto.setStoredFileName(stored);
         dto.setAccessType(accessType);
 
         VideoContent saved = contentManagementService.createVideo(dto);

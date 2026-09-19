@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.net.URL;
 
@@ -39,6 +41,22 @@ public class FileUploadController {
         }
 
         URL url = fileStorageService.generatePresignedUrl(bucketName, requestDto.getObjectKey(), 10);
+        return ResponseEntity.ok(url.toString());
+    }
+
+    // Public GET endpoint to generate a download presigned URL from objectKey query param.
+    // This is permitted in SecurityConfig as GET /api/files/generate-download-url is explicitly allowed.
+    @GetMapping("/generate-download-url")
+    public ResponseEntity<String> generateDownloadUrl(@RequestParam("objectKey") String objectKey,
+                                                      @RequestParam(value = "bucketName", required = false) String bucketName) {
+        if (bucketName == null || bucketName.isBlank()) {
+            if (defaultBucketName == null || defaultBucketName.isBlank()) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("R2 bucket name is not configured.");
+            }
+            bucketName = defaultBucketName;
+        }
+
+        URL url = fileStorageService.generateDownloadPresignedUrl(bucketName, objectKey, 10);
         return ResponseEntity.ok(url.toString());
     }
 }
