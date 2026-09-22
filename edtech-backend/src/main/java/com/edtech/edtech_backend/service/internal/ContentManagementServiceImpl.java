@@ -21,17 +21,20 @@ public class ContentManagementServiceImpl implements ContentManagementService {
     private final TestSeriesRepository testSeriesRepository;
     private final QuizRepository quizRepository;
     private final CourseRepository courseRepository;
+    private final CategoryRepository categoryRepository;
     private final SubscriptionAccessService subscriptionAccessService;
 
     public ContentManagementServiceImpl(VideoContentRepository videoContentRepository,
                                         TestSeriesRepository testSeriesRepository,
                                         QuizRepository quizRepository,
                                         CourseRepository courseRepository,
+                                        CategoryRepository categoryRepository,
                                         SubscriptionAccessService subscriptionAccessService) {
         this.videoContentRepository = videoContentRepository;
         this.testSeriesRepository = testSeriesRepository;
         this.quizRepository = quizRepository;
         this.courseRepository = courseRepository;
+        this.categoryRepository = categoryRepository;
         this.subscriptionAccessService = subscriptionAccessService;
     }
 
@@ -65,10 +68,20 @@ public class ContentManagementServiceImpl implements ContentManagementService {
     public Quiz createQuiz(QuizUploadDto dto) {
         Course course = courseRepository.findById(dto.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        Category category = categoryRepository.findById(dto.getCategoryId())
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+
+        if (course.getCategory() != null && !course.getCategory().getId().equals(category.getId())) {
+            throw new RuntimeException("Selected category does not match the course category");
+        }
+
         Quiz quiz = new Quiz();
         quiz.setTitle(dto.getTitle());
+        quiz.setDescription(dto.getDescription());
         quiz.setCourse(course);
-        quiz.setAccessType(dto.getAccessType()); // Use accessType from DTO
+        quiz.setCategory(category);
+        quiz.setAccessType(dto.getAccessType() != null ? dto.getAccessType() : ContentAccessType.FREE);
         return quizRepository.save(quiz);
     }
 

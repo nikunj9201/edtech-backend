@@ -1,6 +1,7 @@
 package com.edtech.edtech_backend.controller;
 
 import com.edtech.edtech_backend.dto.PurchaseRequestDto;
+import com.edtech.edtech_backend.dto.SubscriptionAccessResponseDto;
 import com.edtech.edtech_backend.dto.SubscriptionActivationRequest;
 import com.edtech.edtech_backend.dto.SubscriptionPlanDto;
 import com.edtech.edtech_backend.dto.UserSubscriptionDto;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
@@ -46,6 +48,57 @@ public class SubscriptionController {
         User admin = new User();
         admin.setId(adminDetails.getId());
         return ResponseEntity.ok(subscriptionService.activateSubscription(request, admin));
+    }
+
+    @GetMapping("/admin/subscriptions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<SubscriptionAccessResponseDto>> getAllSubscriptions() {
+        List<SubscriptionAccessResponseDto> response = subscriptionService.getAllSubscriptions().stream()
+                .map(sub -> new SubscriptionAccessResponseDto(
+                        sub.getId(),
+                        sub.getUser() != null ? sub.getUser().getId() : null,
+                        sub.getUser() != null ? sub.getUser().getName() : null,
+                        sub.getUser() != null ? sub.getUser().getEmail() : null,
+                        sub.getCourse() != null ? sub.getCourse().getId() : null,
+                        sub.getCourse() != null ? sub.getCourse().getTitle() : null,
+                        sub.getPlan() != null ? sub.getPlan().getName() : null,
+                        sub.getStartDate(),
+                        sub.getEndDate(),
+                        sub.getStatus(),
+                        sub.getActivatedByAdmin() != null ? sub.getActivatedByAdmin().getId() : null,
+                        sub.getActivatedByAdmin() != null ? sub.getActivatedByAdmin().getName() : null
+                ))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/admin/users/{userId}/subscriptions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<SubscriptionAccessResponseDto>> getSubscriptionsByUser(@PathVariable Long userId) {
+        List<SubscriptionAccessResponseDto> response = subscriptionService.getSubscriptionsByUser(userId).stream()
+                .map(sub -> new SubscriptionAccessResponseDto(
+                        sub.getId(),
+                        sub.getUser() != null ? sub.getUser().getId() : null,
+                        sub.getUser() != null ? sub.getUser().getName() : null,
+                        sub.getUser() != null ? sub.getUser().getEmail() : null,
+                        sub.getCourse() != null ? sub.getCourse().getId() : null,
+                        sub.getCourse() != null ? sub.getCourse().getTitle() : null,
+                        sub.getPlan() != null ? sub.getPlan().getName() : null,
+                        sub.getStartDate(),
+                        sub.getEndDate(),
+                        sub.getStatus(),
+                        sub.getActivatedByAdmin() != null ? sub.getActivatedByAdmin().getId() : null,
+                        sub.getActivatedByAdmin() != null ? sub.getActivatedByAdmin().getName() : null
+                ))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/admin/subscriptions/{subscriptionId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<String> deleteSubscription(@PathVariable Long subscriptionId) {
+        subscriptionService.deleteSubscription(subscriptionId);
+        return ResponseEntity.ok("Subscription access removed successfully");
     }
 
     // User-specific APIs

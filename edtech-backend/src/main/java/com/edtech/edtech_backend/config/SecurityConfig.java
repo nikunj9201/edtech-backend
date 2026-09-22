@@ -229,6 +229,10 @@ public class SecurityConfig {
                         ).permitAll()
 
 
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/courses/**"
+                        ).permitAll()
                         // -------------------------------------------------
                         // EVERYTHING ELSE REQUIRES LOGIN
                         // -------------------------------------------------

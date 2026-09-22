@@ -77,7 +77,10 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         Course course = courseRepository.findById(request.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found with ID: " + request.getCourseId()));
 
-        // Deactivate any existing subscription for this course
+        if (request.getDurationInDays() <= 0) {
+            throw new RuntimeException("durationInDays must be greater than zero");
+        }
+
         userSubscriptionRepository.findByUserAndCourse(student, course)
                 .ifPresent(sub -> {
                     sub.setStatus(SubscriptionStatus.CANCELLED);
@@ -90,9 +93,36 @@ public class SubscriptionServiceImpl implements SubscriptionService {
         newSubscription.setStartDate(LocalDate.now());
         newSubscription.setEndDate(LocalDate.now().plusDays(request.getDurationInDays()));
         newSubscription.setStatus(SubscriptionStatus.ACTIVE);
-        newSubscription.setActivatedByAdmin(admin); // Link the admin who activated it
+        newSubscription.setActivatedByAdmin(admin);
+
+        if (request.getPlanId() != null) {
+            SubscriptionPlan plan = planRepository.findById(request.getPlanId())
+                    .orElseThrow(() -> new RuntimeException("Subscription plan not found with ID: " + request.getPlanId()));
+            newSubscription.setPlan(plan);
+        }
 
         return userSubscriptionRepository.save(newSubscription);
+    }
+
+    @Override
+    public List<UserSubscription> getAllSubscriptions() {
+        return userSubscriptionRepository.findAll();
+    }
+
+    @Override
+    public List<UserSubscription> getSubscriptionsByUser(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+        return userSubscriptionRepository.findByUserOrderByEndDateDesc(user);
+    }
+
+    @Override
+    @Transactional
+    public void deleteSubscription(Long subscriptionId) {
+        UserSubscription subscription = userSubscriptionRepository.findById(subscriptionId)
+                .orElseThrow(() -> new RuntimeException("Subscription not found with ID: " + subscriptionId));
+        subscription.setStatus(SubscriptionStatus.CANCELLED);
+        userSubscriptionRepository.delete(subscription);
     }
     
     // ... other private helper methods

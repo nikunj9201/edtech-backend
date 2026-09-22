@@ -30,6 +30,11 @@ public class CourseController {
         return ResponseEntity.ok(courseService.getCourseById(id));
     }
 
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<Course>> getCoursesByCategory(@PathVariable Long categoryId) {
+        return ResponseEntity.ok(courseService.getCoursesByCategoryId(categoryId));
+    }
+
     // Admin-only endpoints
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")

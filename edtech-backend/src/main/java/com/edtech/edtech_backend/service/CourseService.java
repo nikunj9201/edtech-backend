@@ -11,4 +11,5 @@ public interface CourseService {
     void deleteCourse(Long courseId);
     List<Course> getAllCourses();
     Course getCourseById(Long courseId);
+    List<Course> getCoursesByCategoryId(Long categoryId);
 }

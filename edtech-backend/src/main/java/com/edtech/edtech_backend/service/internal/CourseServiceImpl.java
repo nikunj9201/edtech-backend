@@ -84,4 +84,12 @@ public class CourseServiceImpl implements CourseService {
         return courseRepository.findById(courseId)
                 .orElseThrow(() -> new RuntimeException("Course not found"));
     }
+
+    @Override
+    public List<Course> getCoursesByCategoryId(Long categoryId) {
+        // Validate category exists
+        Category category = categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found"));
+        return courseRepository.findByCategoryId(categoryId);
+    }
 }

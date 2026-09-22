@@ -19,4 +19,8 @@ public interface SubscriptionService {
     UserSubscriptionDto getMySubscription(User user);
     List<UserSubscriptionDto> getSubscriptionHistory(User user);
     UserSubscription activateSubscription(SubscriptionActivationRequest request, User admin);
+
+    List<UserSubscription> getAllSubscriptions();
+    List<UserSubscription> getSubscriptionsByUser(Long userId);
+    void deleteSubscription(Long subscriptionId);
 }

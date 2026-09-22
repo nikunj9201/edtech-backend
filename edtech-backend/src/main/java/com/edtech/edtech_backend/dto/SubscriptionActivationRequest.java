@@ -6,5 +6,6 @@ import lombok.Data;
 public class SubscriptionActivationRequest {
     private Long userId;
     private Long courseId;
+    private Long planId;
     private int durationInDays;
 }
