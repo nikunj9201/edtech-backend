@@ -36,7 +36,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        // Skip authentication for public auth endpoints
         String path = request.getRequestURI();
         if (path.startsWith("/api/auth/")) {
             filterChain.doFilter(request, response);
@@ -44,29 +43,50 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         try {
-            String jwt = parseJwt(request);
-            
-            // --- DETAILED LOGGING ---
-            if (jwt == null) {
-                logger.warn("JWT Token is null for request: {}", request.getRequestURI());
+            String authHeader = request.getHeader("Authorization");
+            boolean headerPresent = StringUtils.hasText(authHeader);
+            boolean bearerPresent = headerPresent && authHeader.startsWith("Bearer ");
+
+            logger.info("Authorization header present = {} | Bearer token present = {} | request = {}",
+                    headerPresent, bearerPresent, request.getRequestURI());
+
+            if (!headerPresent) {
+                logger.warn("Authorization header missing for request: {}", request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
             }
 
-            if (jwt != null) {
-                boolean isValid = jwtUtils.validateJwtToken(jwt);
-                logger.info("Request to {}: JWT Token found. Is it valid? -> {}", request.getRequestURI(), isValid);
+            if (!bearerPresent) {
+                logger.warn("Authorization header present but no Bearer token for request: {}", request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-                if (isValid) {
-                    String username = jwtUtils.getUserNameFromJwtToken(jwt);
-                    logger.info("Token is valid. Username from token: {}", username);
+            String jwt = authHeader.substring(7).trim();
+            if (!StringUtils.hasText(jwt)) {
+                logger.warn("Bearer token is empty for request: {}", request.getRequestURI());
+                filterChain.doFilter(request, response);
+                return;
+            }
 
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities());
-                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            boolean isValid = jwtUtils.validateJwtToken(jwt);
+            logger.info("JWT validation result = {} | request = {}", isValid, request.getRequestURI());
 
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
-                    logger.info("Authentication successful for user: {}. Roles: {}", username, userDetails.getAuthorities());
+            if (isValid) {
+                String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                logger.info("Authenticated username = {}", username);
+
+                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+                if (userDetails != null && !userDetails.getAuthorities().isEmpty()) {
+                    logger.info("Authenticated role = {}", userDetails.getAuthorities().iterator().next().getAuthority());
                 }
+
+                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+                logger.info("Authentication stored in SecurityContextHolder for user: {}", username);
             }
         } catch (Exception e) {
             logger.error("Cannot set user authentication: {}", e.getMessage(), e);
@@ -76,12 +96,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private String parseJwt(HttpServletRequest request) {
-        String headerAuth = request.getHeader("Authorization");
-
-        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
-            return headerAuth.substring(7);
+        String authHeader = request.getHeader("Authorization");
+        if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7).trim();
         }
-        logger.warn("No JWT 'Bearer' token found in Authorization header for request: {}", request.getRequestURI());
         return null;
     }
 }

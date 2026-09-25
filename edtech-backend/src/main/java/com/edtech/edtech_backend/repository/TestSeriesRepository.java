@@ -8,7 +8,6 @@ import java.util.List;
 
 @Repository
 public interface TestSeriesRepository extends JpaRepository<TestSeries, Long> {
-    List<TestSeries> findByCourseId(Long courseId);
     List<TestSeries> findByActiveTrueOrderByIdDesc();
     List<TestSeries> findAllByOrderByIdDesc();
 }

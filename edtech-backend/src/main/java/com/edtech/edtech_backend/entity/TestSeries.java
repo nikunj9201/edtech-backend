@@ -21,10 +21,6 @@ public class TestSeries {
     @Column(nullable = false)
     private String title;
 
-    @ManyToOne
-    @JoinColumn(name = "course_id")
-    private Course course;
-
     private String subtitle;
 
     @Column(columnDefinition = "TEXT")

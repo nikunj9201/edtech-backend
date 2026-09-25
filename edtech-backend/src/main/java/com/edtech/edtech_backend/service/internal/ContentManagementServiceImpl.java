@@ -58,7 +58,6 @@ public class ContentManagementServiceImpl implements ContentManagementService {
                 .orElseThrow(() -> new RuntimeException("Course not found"));
         TestSeries testSeries = new TestSeries();
         testSeries.setTitle(dto.getTitle());
-        testSeries.setCourse(course);
         testSeries.setAccessType(dto.getAccessType()); // Use accessType from DTO
         // In a real app, you'd set the paper URL here
         return testSeriesRepository.save(testSeries);
@@ -103,12 +102,12 @@ public class ContentManagementServiceImpl implements ContentManagementService {
 
     @Override
     public List<ContentResponseDto<TestSeries>> getTestPapersByCourse(Long courseId, User user) {
-        List<TestSeries> allTestSeries = testSeriesRepository.findByCourseId(courseId);
+        // TestSeries is independent from Course. Ignore courseId and return all active test series.
+        List<TestSeries> allTestSeries = testSeriesRepository.findByActiveTrueOrderByIdDesc();
         boolean hasActiveSubscription = subscriptionAccessService.hasActiveSubscription(user);
 
         return allTestSeries.stream().map(testSeries -> {
             boolean isLocked = testSeries.getAccessType() == ContentAccessType.PREMIUM && !hasActiveSubscription;
-            // You might clear sensitive test paper data if locked
             return new ContentResponseDto<>(testSeries, isLocked, testSeries.getAccessType());
         }).collect(Collectors.toList());
     }

@@ -239,7 +239,8 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/uploads/quizzes/{quizId}/submit"
+                                "/api/uploads/quizzes/{quizId}/submit",
+                                "/api/test-papers"
                         ).hasAnyRole("STUDENT", "ADMIN")
 
                         // -------------------------------------------------
@@ -258,6 +259,19 @@ public class SecurityConfig {
                                 "/api/courses/**",
                                 "/api/videos/course/**"
                         ).permitAll()
+
+                        // -------------------------------------------------
+                        // TEST SERIES (student visible; admin managed)
+                        // -------------------------------------------------
+                        .requestMatchers(HttpMethod.GET, "/api/test-series", "/api/test-series/**", "/api/test-papers/**")
+                        .hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/test-series", "/api/test-series/**", "/api/test-papers/**")
+                        .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/test-series/**", "/api/test-papers/**", "/api/test-paper-questions/**")
+                        .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/test-series/**", "/api/test-papers/**", "/api/test-paper-questions/**")
+                        .hasRole("ADMIN")
+
                         // -------------------------------------------------
                         // EVERYTHING ELSE REQUIRES LOGIN
                         // -------------------------------------------------
