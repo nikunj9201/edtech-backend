@@ -217,6 +217,30 @@ public class SecurityConfig {
                                 "/api/courses/**"
                         ).permitAll()
 
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/subscriptions/my-subscription"
+                        ).hasAnyRole("STUDENT", "ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/subscriptions/my-courses"
+                        ).hasAnyRole("STUDENT", "ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/subscriptions/course/**"
+                        ).hasAnyRole("STUDENT", "ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/quizzes/course/**"
+                        ).hasAnyRole("STUDENT", "ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/uploads/quizzes/{quizId}/submit"
+                        ).hasAnyRole("STUDENT", "ADMIN")
 
                         // -------------------------------------------------
                         // R2 DOWNLOAD URL
@@ -231,7 +255,8 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/courses/**"
+                                "/api/courses/**",
+                                "/api/videos/course/**"
                         ).permitAll()
                         // -------------------------------------------------
                         // EVERYTHING ELSE REQUIRES LOGIN

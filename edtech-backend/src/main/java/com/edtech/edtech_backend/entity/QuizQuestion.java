@@ -33,4 +33,7 @@ public class QuizQuestion {
     // 0 = A, 1 = B, 2 = C, 3 = D
     @Column(nullable = false)
     private Integer correctOptionIndex;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
 }

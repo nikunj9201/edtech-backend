@@ -1,5 +1,7 @@
 package com.edtech.edtech_backend.service;
 
+import com.edtech.edtech_backend.dto.CourseAccessStatusDto;
+import com.edtech.edtech_backend.dto.StudentCourseAccessDto;
 import com.edtech.edtech_backend.dto.SubscriptionActivationRequest;
 import com.edtech.edtech_backend.dto.SubscriptionPlanDto;
 import com.edtech.edtech_backend.dto.UserSubscriptionDto;
@@ -18,6 +20,8 @@ public interface SubscriptionService {
     UserSubscriptionDto purchaseSubscription(User user, Long planId, String paymentMethod);
     UserSubscriptionDto getMySubscription(User user);
     List<UserSubscriptionDto> getSubscriptionHistory(User user);
+    List<StudentCourseAccessDto> getMyCourses(User user);
+    CourseAccessStatusDto getCourseAccess(User user, Long courseId);
     UserSubscription activateSubscription(SubscriptionActivationRequest request, User admin);
 
     List<UserSubscription> getAllSubscriptions();

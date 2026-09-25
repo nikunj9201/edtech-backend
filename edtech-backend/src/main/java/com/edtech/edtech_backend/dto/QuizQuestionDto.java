@@ -10,4 +10,5 @@ public class QuizQuestionDto {
     private String optionC;
     private String optionD;
     private Integer correctOptionIndex; // 0-3
+    private String description;
 }

@@ -1,9 +1,12 @@
 package com.edtech.edtech_backend.service.internal;
 
+import com.edtech.edtech_backend.dto.CourseAccessStatusDto;
+import com.edtech.edtech_backend.dto.StudentCourseAccessDto;
 import com.edtech.edtech_backend.dto.SubscriptionActivationRequest;
 import com.edtech.edtech_backend.dto.SubscriptionPlanDto;
 import com.edtech.edtech_backend.dto.UserSubscriptionDto;
 import com.edtech.edtech_backend.entity.*;
+import com.edtech.edtech_backend.model.ContentAccessType;
 import com.edtech.edtech_backend.model.PaymentStatus;
 import com.edtech.edtech_backend.model.SubscriptionStatus;
 import com.edtech.edtech_backend.repository.*;
@@ -14,7 +17,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -59,14 +64,159 @@ public class SubscriptionServiceImpl implements SubscriptionService {
 
     @Override
     public UserSubscriptionDto getMySubscription(User user) {
-        // ... (implementation remains the same)
-        return null;
+        List<UserSubscription> subscriptions = userSubscriptionRepository.findByUserOrderByEndDateDesc(user);
+        UserSubscriptionDto dto = new UserSubscriptionDto();
+        dto.setSubscribed(false);
+
+        if (subscriptions == null || subscriptions.isEmpty()) {
+            return dto;
+        }
+
+        UserSubscription active = subscriptions.stream()
+                .filter(sub -> sub.getStatus() == SubscriptionStatus.ACTIVE)
+                .filter(sub -> !sub.getEndDate().isBefore(LocalDate.now()))
+                .findFirst()
+                .orElse(null);
+
+        if (active == null) {
+            UserSubscription latest = subscriptions.get(0);
+            dto.setSubscribed(false);
+            dto.setCourseId(latest.getCourse() != null ? latest.getCourse().getId() : null);
+            dto.setPlanName(latest.getPlan() != null ? latest.getPlan().getName() : "N/A");
+            dto.setStartDate(latest.getStartDate());
+            dto.setEndDate(latest.getEndDate());
+            dto.setStatus(latest.getStatus());
+            dto.setDaysRemaining(0);
+            return dto;
+        }
+
+        dto.setSubscribed(true);
+        dto.setCourseId(active.getCourse() != null ? active.getCourse().getId() : null);
+        dto.setPlanName(active.getPlan() != null ? active.getPlan().getName() : "N/A");
+        dto.setStartDate(active.getStartDate());
+        dto.setEndDate(active.getEndDate());
+        dto.setStatus(active.getStatus());
+        dto.setDaysRemaining(Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), active.getEndDate())));
+        return dto;
     }
 
     @Override
     public List<UserSubscriptionDto> getSubscriptionHistory(User user) {
-        // ... (implementation remains the same)
-        return null;
+        List<UserSubscription> subscriptions = userSubscriptionRepository.findByUserOrderByEndDateDesc(user);
+        if (subscriptions == null || subscriptions.isEmpty()) {
+            return List.of();
+        }
+
+        return subscriptions.stream().map(sub -> {
+            UserSubscriptionDto dto = new UserSubscriptionDto();
+            dto.setCourseId(sub.getCourse() != null ? sub.getCourse().getId() : null);
+            dto.setSubscribed(sub.getStatus() == SubscriptionStatus.ACTIVE && !sub.getEndDate().isBefore(LocalDate.now()));
+            dto.setPlanName(sub.getPlan() != null ? sub.getPlan().getName() : "N/A");
+            dto.setStartDate(sub.getStartDate());
+            dto.setEndDate(sub.getEndDate());
+            dto.setStatus(sub.getStatus());
+            dto.setDaysRemaining(Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), sub.getEndDate())));
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StudentCourseAccessDto> getMyCourses(User user) {
+        List<Course> allCourses = courseRepository.findAll();
+        return allCourses.stream()
+                .filter(course -> hasAccessToCourse(user, course))
+                .map(course -> {
+                    StudentCourseAccessDto dto = new StudentCourseAccessDto();
+                    dto.setCourseId(course.getId());
+                    dto.setCourseTitle(course.getTitle());
+                    dto.setThumbnailUrl(course.getThumbnailUrl());
+                    dto.setOriginalPrice(course.getOriginalPrice());
+                    dto.setDiscountedPrice(course.getDiscountedPrice());
+                    dto.setAccessType(course.getAccessType());
+                    dto.setAccessGranted(true);
+
+                    Optional<UserSubscription> subscription = userSubscriptionRepository.findByUserAndCourse(user, course);
+                    if (subscription.isPresent()) {
+                        UserSubscription access = subscription.get();
+                        dto.setStartDate(access.getStartDate());
+                        dto.setEndDate(access.getEndDate());
+                        dto.setStatus(access.getStatus().name());
+                        dto.setDaysRemaining(access.getStatus() == SubscriptionStatus.ACTIVE
+                                ? Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), access.getEndDate()))
+                                : 0);
+                    } else {
+                        dto.setStartDate(null);
+                        dto.setEndDate(null);
+                        dto.setStatus("FREE");
+                        dto.setDaysRemaining(0);
+                    }
+                    return dto;
+                })
+                .sorted(Comparator.comparing(StudentCourseAccessDto::getCourseId))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public CourseAccessStatusDto getCourseAccess(User user, Long courseId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new RuntimeException("Course not found with ID: " + courseId));
+
+        CourseAccessStatusDto dto = new CourseAccessStatusDto();
+        dto.setCourseId(course.getId());
+
+        if (course.getAccessType() == ContentAccessType.FREE) {
+            dto.setAccessGranted(true);
+            dto.setStatus("FREE");
+            dto.setStartDate(null);
+            dto.setEndDate(null);
+            dto.setDaysRemaining(0);
+            return dto;
+        }
+
+        Optional<UserSubscription> subscription = userSubscriptionRepository.findByUserAndCourse(user, course);
+        if (subscription.isEmpty()) {
+            dto.setAccessGranted(false);
+            dto.setStatus("NOT_SUBSCRIBED");
+            dto.setStartDate(null);
+            dto.setEndDate(null);
+            dto.setDaysRemaining(0);
+            return dto;
+        }
+
+        UserSubscription access = subscription.get();
+        if (access.getStatus() == SubscriptionStatus.ACTIVE && !access.getEndDate().isBefore(LocalDate.now())) {
+            dto.setAccessGranted(true);
+            dto.setStatus(access.getStatus().name());
+            dto.setStartDate(access.getStartDate());
+            dto.setEndDate(access.getEndDate());
+            dto.setDaysRemaining(Math.max(0, ChronoUnit.DAYS.between(LocalDate.now(), access.getEndDate())));
+            return dto;
+        }
+
+        dto.setAccessGranted(false);
+        dto.setStatus(access.getStatus() == SubscriptionStatus.EXPIRED ? "EXPIRED" : (access.getStatus() == null ? "NOT_SUBSCRIBED" : access.getStatus().name()));
+        dto.setStartDate(access.getStartDate());
+        dto.setEndDate(access.getEndDate());
+        dto.setDaysRemaining(0);
+        return dto;
+    }
+
+    public boolean hasAccessToCourse(User user, Course course) {
+        if (user == null || course == null) {
+            return false;
+        }
+
+        if (course.getAccessType() == ContentAccessType.FREE) {
+            return true;
+        }
+
+        Optional<UserSubscription> subscription = userSubscriptionRepository.findByUserAndCourse(user, course);
+        if (subscription.isEmpty()) {
+            return false;
+        }
+
+        UserSubscription access = subscription.get();
+        return access.getStatus() == SubscriptionStatus.ACTIVE && !access.getEndDate().isBefore(LocalDate.now());
     }
 
     @Override

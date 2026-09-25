@@ -1,6 +1,8 @@
 package com.edtech.edtech_backend.controller;
 
+import com.edtech.edtech_backend.dto.CourseAccessStatusDto;
 import com.edtech.edtech_backend.dto.PurchaseRequestDto;
+import com.edtech.edtech_backend.dto.StudentCourseAccessDto;
 import com.edtech.edtech_backend.dto.SubscriptionAccessResponseDto;
 import com.edtech.edtech_backend.dto.SubscriptionActivationRequest;
 import com.edtech.edtech_backend.dto.SubscriptionPlanDto;
@@ -111,13 +113,32 @@ public class SubscriptionController {
     }
 
     @GetMapping("/subscriptions/my-subscription")
+    @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
     public ResponseEntity<UserSubscriptionDto> getMySubscription(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         User user = new User();
         user.setId(userDetails.getId());
         return ResponseEntity.ok(subscriptionService.getMySubscription(user));
     }
 
+    @GetMapping("/subscriptions/my-courses")
+    @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+    public ResponseEntity<List<StudentCourseAccessDto>> getMyCourses(@AuthenticationPrincipal UserDetailsImpl userDetails) {
+        User user = new User();
+        user.setId(userDetails.getId());
+        return ResponseEntity.ok(subscriptionService.getMyCourses(user));
+    }
+
+    @GetMapping("/subscriptions/course/{courseId}/access")
+    @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
+    public ResponseEntity<CourseAccessStatusDto> getCourseAccess(@PathVariable Long courseId,
+                                                               @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        User user = new User();
+        user.setId(userDetails.getId());
+        return ResponseEntity.ok(subscriptionService.getCourseAccess(user, courseId));
+    }
+
     @GetMapping("/subscriptions/history")
+    @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
     public ResponseEntity<List<UserSubscriptionDto>> getSubscriptionHistory(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         User user = new User();
         user.setId(userDetails.getId());

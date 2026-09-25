@@ -1,5 +1,6 @@
 package com.edtech.edtech_backend.service.internal;
 
+import com.edtech.edtech_backend.entity.Course;
 import com.edtech.edtech_backend.entity.User;
 import com.edtech.edtech_backend.entity.UserSubscription;
 import com.edtech.edtech_backend.model.ContentAccessType;
@@ -29,10 +30,8 @@ public class SubscriptionAccessServiceImpl implements SubscriptionAccessService 
             return false;
         }
 
-        // Request-time validation: check if the subscription has expired
         UserSubscription subscription = activeSubscription.get();
         if (subscription.getEndDate().isBefore(LocalDate.now())) {
-            // If expired, update the status in the database
             subscription.setStatus(SubscriptionStatus.EXPIRED);
             userSubscriptionRepository.save(subscription);
             return false;
@@ -44,9 +43,31 @@ public class SubscriptionAccessServiceImpl implements SubscriptionAccessService 
     @Override
     public boolean canAccessContent(User user, ContentAccessType accessType) {
         if (accessType == ContentAccessType.FREE) {
-            return true; // Free content is always accessible
+            return true;
         }
-        // For premium content, check for an active subscription
         return hasActiveSubscription(user);
+    }
+
+    @Override
+    public boolean hasAccessToCourse(User user, Course course) {
+        if (user == null || course == null) {
+            return false;
+        }
+
+        if (course.getAccessType() == ContentAccessType.FREE) {
+            return true;
+        }
+
+        Optional<UserSubscription> subscription = userSubscriptionRepository.findByUserAndCourse(user, course);
+        if (subscription.isEmpty()) {
+            return false;
+        }
+
+        UserSubscription userSubscription = subscription.get();
+        if (userSubscription.getStatus() != SubscriptionStatus.ACTIVE) {
+            return false;
+        }
+
+        return !userSubscription.getEndDate().isBefore(LocalDate.now());
     }
 }

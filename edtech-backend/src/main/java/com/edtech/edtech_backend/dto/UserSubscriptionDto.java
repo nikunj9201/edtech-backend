@@ -6,6 +6,7 @@ import java.time.LocalDate;
 
 @Data
 public class UserSubscriptionDto {
+    private Long courseId;
     private boolean isSubscribed;
     private String planName;
     private LocalDate startDate;

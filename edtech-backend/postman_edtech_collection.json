@@ -1,0 +1,156 @@
+{
+  "info": {
+    "name": "EdTech - Quiz & TestSeries",
+    "_postman_id": "edtech-quiz-testseries-collection",
+    "description": "Collection for admin and student flows: auth, quiz, test series",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080" },
+    { "key": "token", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Auth - Login",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password\"\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api","auth","login"] }
+      },
+      "response": []
+    },
+
+    {
+      "name": "Admin - Create Quiz",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Capitals Quiz\",\n  \"description\": \"Sample quiz\",\n  \"courseId\": 1,\n  \"categoryId\": 1,\n  \"accessType\": " + "\"FREE\"" + "\n}"
+        },
+        "url": { "raw": "{{baseUrl}}/api/quizzes", "host": ["{{baseUrl}}"], "path": ["api","quizzes"] }
+      }
+    },
+
+    {
+      "name": "Admin - Add Quiz Questions (bulk)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "[\n  {\n    \"questionText\": \"What is the capital of Madhya Pradesh?\",\n    \"optionA\": \"Indore\",\n    \"optionB\": \"Bhopal\",\n    \"optionC\": \"Ujjain\",\n    \"optionD\": \"Gwalior\",\n    \"correctOptionIndex\": 1,\n    \"description\": \"Bhopal is the capital city of Madhya Pradesh.\"\n  }\n]"
+        },
+        "url": { "raw": "{{baseUrl}}/api/uploads/quizzes/1/questions", "host": ["{{baseUrl}}"], "path": ["api","uploads","quizzes","1","questions"] }
+      }
+    },
+
+    {
+      "name": "Student - Get Quiz Questions (sanitized)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/quizzes/1/questions", "host": ["{{baseUrl}}"], "path": ["api","quizzes","1","questions"] }
+      }
+    },
+
+    {
+      "name": "Student - Submit Quiz",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"answers\": {\n    \"1\": 0\n  }\n}" },
+        "url": { "raw": "{{baseUrl}}/api/uploads/quizzes/1/submit", "host": ["{{baseUrl}}"], "path": ["api","uploads","quizzes","1","submit"] }
+      }
+    },
+
+    {
+      "name": "Admin - Create Test Series",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"title\": \"MPPSC 2026 Test Series\",\n  \"subtitle\": \"Full length papers\",\n  \"description\": \"Complete MPPSC practice test series.\",\n  \"thumbnailUrl\": \"test-series/mppsc-2026.png\",\n  \"originalPrice\": 499.00,\n  \"discountedPrice\": 499.00,\n  \"accessType\": \"PREMIUM\",\n  \"isPremium\": true\n}" },
+        "url": { "raw": "{{baseUrl}}/api/test-series", "host": ["{{baseUrl}}"], "path": ["api","test-series"] }
+      }
+    },
+
+    {
+      "name": "Admin - Create Test Paper",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"title\": \"MPPSC Full Test 1\",\n  \"description\": \"Full length practice test\",\n  \"instructions\": \"Attempt all questions\",\n  \"durationMinutes\": 120,\n  \"totalMarks\": 100,\n  \"passingMarks\": 40,\n  \"displayOrder\": 1\n}" },
+        "url": { "raw": "{{baseUrl}}/api/test-series/1/papers", "host": ["{{baseUrl}}"], "path": ["api","test-series","1","papers"] }
+      }
+    },
+
+    {
+      "name": "Admin - Add Test Paper Question",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"questionText\": \"Which river is known as the lifeline of Madhya Pradesh?\",\n  \"optionA\": \"Chambal\",\n  \"optionB\": \"Narmada\",\n  \"optionC\": \"Betwa\",\n  \"optionD\": \"Tapti\",\n  \"correctAnswer\": \"B\",\n  \"description\": \"The Narmada is often referred to as the lifeline of Madhya Pradesh.\",\n  \"marks\": 1,\n  \"negativeMarks\": 0.0,\n  \"displayOrder\": 1\n}" },
+        "url": { "raw": "{{baseUrl}}/api/test-papers/1/questions", "host": ["{{baseUrl}}"], "path": ["api","test-papers","1","questions"] }
+      }
+    },
+
+    {
+      "name": "Student - List Test Series",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/test-series", "host": ["{{baseUrl}}"], "path": ["api","test-series"] }
+      }
+    },
+
+    {
+      "name": "Student - Get Papers for Series",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/test-series/1/papers", "host": ["{{baseUrl}}"], "path": ["api","test-series","1","papers"] }
+      }
+    },
+
+    {
+      "name": "Student - Start/Get Paper Summary",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/test-papers/1", "host": ["{{baseUrl}}"], "path": ["api","test-papers","1"] }
+      }
+    },
+
+    {
+      "name": "Student - Get Paper Questions (no answers)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "url": { "raw": "{{baseUrl}}/api/test-papers/1/questions", "host": ["{{baseUrl}}"], "path": ["api","test-papers","1","questions"] }
+      }
+    },
+
+    {
+      "name": "Student - Submit Paper",
+      "request": {
+        "method": "POST",
+        "header": [ { "key": "Content-Type", "value": "application/json" }, { "key": "Authorization", "value": "Bearer {{token}}" } ],
+        "body": { "mode": "raw", "raw": "{\n  \"answers\": [\n    { \"questionId\": 1, \"selectedAnswer\": \"B\" },\n    { \"questionId\": 2, \"selectedAnswer\": \"A\" }\n  ]\n}" },
+        "url": { "raw": "{{baseUrl}}/api/test-papers/1/submit", "host": ["{{baseUrl}}"], "path": ["api","test-papers","1","submit"] }
+      }
+    }
+  ]
+}
