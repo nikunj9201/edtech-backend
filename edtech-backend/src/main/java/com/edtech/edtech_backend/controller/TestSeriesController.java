@@ -7,17 +7,18 @@ import com.edtech.edtech_backend.entity.TestSeries;
 import com.edtech.edtech_backend.entity.User;
 import com.edtech.edtech_backend.security.service.UserDetailsImpl;
 import com.edtech.edtech_backend.service.TestSeriesService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -118,8 +119,22 @@ public class TestSeriesController {
 
     @PostMapping("/test-papers/{paperId}/questions")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<TestPaperQuestion> addQuestion(@PathVariable Long paperId, @Valid @RequestBody TestPaperQuestionDto dto) {
-        return ResponseEntity.ok(testSeriesService.addQuestionToPaper(paperId, dto));
+    public ResponseEntity<TestPaperQuestionDto> addQuestion(@PathVariable Long paperId, @RequestBody Object requestBody) {
+        TestPaperQuestionDto dto;
+
+        if (requestBody instanceof List<?> list && !list.isEmpty()) {
+            Object first = list.get(0);
+            dto = new ObjectMapper().convertValue(first, TestPaperQuestionDto.class);
+        } else {
+            dto = new ObjectMapper().convertValue(requestBody, TestPaperQuestionDto.class);
+        }
+
+        if (dto == null || dto.getQuestionText() == null || dto.getQuestionText().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Question payload is required");
+        }
+
+        TestPaperQuestion saved = testSeriesService.addQuestionToPaper(paperId, dto);
+        return ResponseEntity.ok(toQuestionDto(saved));
     }
 
     @GetMapping("/test-papers/{paperId}/questions")
@@ -151,8 +166,9 @@ public class TestSeriesController {
 
     @PutMapping("/test-paper-questions/{questionId}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<TestPaperQuestion> updateQuestion(@PathVariable Long questionId, @Valid @RequestBody TestPaperQuestionDto dto) {
-        return ResponseEntity.ok(testSeriesService.updateQuestion(questionId, dto));
+    public ResponseEntity<TestPaperQuestionDto> updateQuestion(@PathVariable Long questionId, @Valid @RequestBody TestPaperQuestionDto dto) {
+        TestPaperQuestion updated = testSeriesService.updateQuestion(questionId, dto);
+        return ResponseEntity.ok(toQuestionDto(updated));
     }
 
     @DeleteMapping("/test-paper-questions/{questionId}")

@@ -198,9 +198,16 @@ public class TestSeriesServiceImpl implements TestSeriesService {
     }
 
     @Override
+    @Transactional
     public void deleteQuestion(Long questionId) {
         TestPaperQuestion question = testPaperQuestionRepository.findById(questionId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Question not found"));
+
+        TestPaper paper = question.getTestPaper();
+        if (paper != null && paper.getQuestions() != null) {
+            paper.getQuestions().removeIf(q -> q != null && q.getId() != null && q.getId().equals(questionId));
+        }
+
         testPaperQuestionRepository.delete(question);
     }
 
