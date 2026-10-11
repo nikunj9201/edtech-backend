@@ -1,0 +1,100 @@
+{
+  "info": {
+    "name": "EdTech - Test Series & Subscriptions",
+    "_postman_id": "test-series-subscriptions-001",
+    "description": "Collection: student test-series flow and admin subscription APIs. Set {{baseUrl}} and {{token}} in Postman environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Student - Test Series Flow",
+      "item": [
+        {
+          "name": "Get All Test Series",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" }
+            ],
+            "url": { "raw": "{{baseUrl}}/api/test-series", "host": ["{{baseUrl}}"], "path": ["api","test-series"] }
+          }
+        },
+        {
+          "name": "Get Test Series by ID",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/test-series/:id", "host": ["{{baseUrl}}"], "path": ["api","test-series",":id"] }
+          }
+        },
+        {
+          "name": "Get Papers for Series",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/test-series/:id/papers", "host": ["{{baseUrl}}"], "path": ["api","test-series",":id","papers"] }
+          }
+        },
+        {
+          "name": "Get Paper (student view)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/test-papers/:paperId", "host": ["{{baseUrl}}"], "path": ["api","test-papers",":paperId"] }
+          }
+        },
+        {
+          "name": "Submit Paper (student)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"questionId\": 101, \"selectedAnswer\": \"A\" },\n    { \"questionId\": 102, \"selectedAnswer\": \"C\" }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/test-papers/:paperId/submit", "host": ["{{baseUrl}}"], "path": ["api","test-papers",":paperId","submit"] }
+          }
+        },
+        {
+          "name": "Get My Test-Series Subscriptions (student)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/students/test-series/subscriptions", "host": ["{{baseUrl}}"], "path": ["api","students","test-series","subscriptions"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Test Series Subscriptions",
+      "item": [
+        {
+          "name": "Activate Test Series Subscription (admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 5,\n  \"testSeriesId\": 1,\n  \"durationInDays\": 30\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api/admin/test-series/subscriptions/activate", "host": ["{{baseUrl}}"], "path": ["api","admin","test-series","subscriptions","activate"] }
+          }
+        },
+        {
+          "name": "Get Student Test-Series Subscriptions (admin)",
+          "request": {
+            "method": "GET",
+            "header": [ { "key": "Authorization", "value": "Bearer {{token}}", "type": "text" } ],
+            "url": { "raw": "{{baseUrl}}/api/admin/test-series/subscriptions/:studentId", "host": ["{{baseUrl}}"], "path": ["api","admin","test-series","subscriptions",":studentId"] }
+          }
+        }
+      ]
+    }
+  ]
+}

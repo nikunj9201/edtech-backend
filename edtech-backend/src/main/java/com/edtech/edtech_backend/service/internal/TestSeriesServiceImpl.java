@@ -4,6 +4,7 @@ import com.edtech.edtech_backend.dto.*;
 import com.edtech.edtech_backend.entity.*;
 import com.edtech.edtech_backend.model.ContentAccessType;
 import com.edtech.edtech_backend.repository.*;
+import com.edtech.edtech_backend.model.SubscriptionStatus;
 import com.edtech.edtech_backend.service.SubscriptionAccessService;
 import com.edtech.edtech_backend.service.TestSeriesService;
 import org.springframework.http.HttpStatus;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,6 +28,8 @@ public class TestSeriesServiceImpl implements TestSeriesService {
     private final TestPaperAttemptRepository testPaperAttemptRepository;
     private final TestPaperAttemptAnswerRepository testPaperAttemptAnswerRepository;
     private final UserRepository userRepository;
+    private final SubscriptionPlanRepository subscriptionPlanRepository;
+    private final UserTestSeriesSubscriptionRepository userTestSeriesSubscriptionRepository;
     private final SubscriptionAccessService subscriptionAccessService;
 
     public TestSeriesServiceImpl(TestSeriesRepository testSeriesRepository,
@@ -34,6 +38,8 @@ public class TestSeriesServiceImpl implements TestSeriesService {
                                 TestPaperAttemptRepository testPaperAttemptRepository,
                                 TestPaperAttemptAnswerRepository testPaperAttemptAnswerRepository,
                                 UserRepository userRepository,
+                                SubscriptionPlanRepository subscriptionPlanRepository,
+                                UserTestSeriesSubscriptionRepository userTestSeriesSubscriptionRepository,
                                 SubscriptionAccessService subscriptionAccessService) {
         this.testSeriesRepository = testSeriesRepository;
         this.testPaperRepository = testPaperRepository;
@@ -41,6 +47,8 @@ public class TestSeriesServiceImpl implements TestSeriesService {
         this.testPaperAttemptRepository = testPaperAttemptRepository;
         this.testPaperAttemptAnswerRepository = testPaperAttemptAnswerRepository;
         this.userRepository = userRepository;
+        this.subscriptionPlanRepository = subscriptionPlanRepository;
+        this.userTestSeriesSubscriptionRepository = userTestSeriesSubscriptionRepository;
         this.subscriptionAccessService = subscriptionAccessService;
     }
 
@@ -259,7 +267,92 @@ public class TestSeriesServiceImpl implements TestSeriesService {
         if (user == null || user.getId() == null) return false;
         User persistedUser = userRepository.findById(user.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
-        return subscriptionAccessService.hasActiveSubscription(persistedUser);
+
+        List<UserTestSeriesSubscription> subscriptions = userTestSeriesSubscriptionRepository.findByUserAndTestSeries(persistedUser, testSeries);
+        if (subscriptions == null || subscriptions.isEmpty()) {
+            return false;
+        }
+
+        return subscriptions.stream().anyMatch(sub ->
+                sub.getStatus() == SubscriptionStatus.ACTIVE && !sub.getEndDate().isBefore(LocalDate.now())
+        );
+    }
+
+    @Override
+    @Transactional
+    public TestSeriesSubscriptionDto activateTestSeriesSubscription(TestSeriesSubscriptionActivationRequest request, User admin) {
+        if (request == null || request.getUserId() == null || request.getTestSeriesId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "userId and testSeriesId are required");
+        }
+        if (request.getDurationInDays() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "durationInDays must be greater than zero");
+        }
+
+        User student = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found with ID: " + request.getUserId()));
+        TestSeries testSeries = testSeriesRepository.findById(request.getTestSeriesId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Test series not found with ID: " + request.getTestSeriesId()));
+
+        List<UserTestSeriesSubscription> existing = userTestSeriesSubscriptionRepository.findByUserAndTestSeries(student, testSeries);
+        existing.forEach(sub -> {
+            sub.setStatus(SubscriptionStatus.CANCELLED);
+            userTestSeriesSubscriptionRepository.save(sub);
+        });
+
+        UserTestSeriesSubscription subscription = new UserTestSeriesSubscription();
+        subscription.setUser(student);
+        subscription.setTestSeries(testSeries);
+        subscription.setStartDate(LocalDate.now());
+        subscription.setEndDate(LocalDate.now().plusDays(request.getDurationInDays()));
+        subscription.setStatus(SubscriptionStatus.ACTIVE);
+        subscription.setActivatedByAdmin(admin);
+
+        if (request.getPlanId() != null) {
+            SubscriptionPlan plan = subscriptionPlanRepository.findById(request.getPlanId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Subscription plan not found with ID: " + request.getPlanId()));
+            subscription.setPlan(plan);
+        }
+
+        UserTestSeriesSubscription saved = userTestSeriesSubscriptionRepository.save(subscription);
+        return toDto(saved);
+    }
+
+    @Override
+    public List<TestSeriesSubscriptionDto> getStudentTestSeriesSubscriptions(Long studentId) {
+        User student = userRepository.findById(studentId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Student not found with ID: " + studentId));
+        return userTestSeriesSubscriptionRepository.findByUserOrderByEndDateDesc(student).stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    @Override
+    public List<TestSeriesSubscriptionDto> getMyTestSeriesSubscriptions(User user) {
+        if (user == null || user.getId() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        User persistedUser = userRepository.findById(user.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return userTestSeriesSubscriptionRepository.findByUserOrderByEndDateDesc(persistedUser).stream()
+                .map(this::toDto)
+                .toList();
+    }
+
+    private TestSeriesSubscriptionDto toDto(UserTestSeriesSubscription sub) {
+        TestSeriesSubscriptionDto dto = new TestSeriesSubscriptionDto();
+        dto.setId(sub.getId());
+        dto.setUserId(sub.getUser() != null ? sub.getUser().getId() : null);
+        dto.setUserName(sub.getUser() != null ? sub.getUser().getName() : null);
+        dto.setTestSeriesId(sub.getTestSeries() != null ? sub.getTestSeries().getId() : null);
+        dto.setTestSeriesTitle(sub.getTestSeries() != null ? sub.getTestSeries().getTitle() : null);
+        dto.setPlanId(sub.getPlan() != null ? sub.getPlan().getId() : null);
+        dto.setPlanName(sub.getPlan() != null ? sub.getPlan().getName() : null);
+        dto.setStartDate(sub.getStartDate());
+        dto.setEndDate(sub.getEndDate());
+        dto.setStatus(sub.getStatus());
+        dto.setActivatedByAdminId(sub.getActivatedByAdmin() != null ? sub.getActivatedByAdmin().getId() : null);
+        dto.setActivatedByAdminName(sub.getActivatedByAdmin() != null ? sub.getActivatedByAdmin().getName() : null);
+        return dto;
     }
 
     @Override

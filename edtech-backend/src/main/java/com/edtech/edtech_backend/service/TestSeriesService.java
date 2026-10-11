@@ -30,6 +30,10 @@ public interface TestSeriesService {
     List<TestPaperStudentDto> getAccessiblePapersForStudent(Long testSeriesId, User user);
     boolean hasAccessToSeries(User user, TestSeries testSeries);
 
+    TestSeriesSubscriptionDto activateTestSeriesSubscription(TestSeriesSubscriptionActivationRequest request, User admin);
+    List<TestSeriesSubscriptionDto> getStudentTestSeriesSubscriptions(Long studentId);
+    List<TestSeriesSubscriptionDto> getMyTestSeriesSubscriptions(User user);
+
     TestPaperSubmissionResultDto startPaper(Long paperId, User user);
     TestPaperSubmissionResultDto submitPaper(Long paperId, User user, List<TestPaperSubmissionAnswerDto> answers);
 }

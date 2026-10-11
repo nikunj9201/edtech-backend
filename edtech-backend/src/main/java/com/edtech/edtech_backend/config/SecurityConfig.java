@@ -192,12 +192,23 @@ public class SecurityConfig {
                         // -------------------------------------------------
                         // AUTH APIs
                         // -------------------------------------------------
-                        .requestMatchers(
+                        .requestMatchers(HttpMethod.POST,
+                                 "/api/auth/register",
+                                "/api/auth/verify",
+                                "/api/auth/login"
+                        ).permitAll()
+
+                        .requestMatchers(HttpMethod.OPTIONS,
                                 "/api/auth/register",
                                 "/api/auth/verify",
-                                "/api/auth/login",
+                                "/api/auth/login"
+                        ).permitAll()
+
+                        .requestMatchers(HttpMethod.GET,
                                 "/api/auth/**"
                         ).permitAll()
+
+                        .requestMatchers("/api/auth/**").permitAll()
 
 
                         // -------------------------------------------------
@@ -238,6 +249,16 @@ public class SecurityConfig {
                         ).hasAnyRole("STUDENT", "ADMIN")
 
                         .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/content/videos/**"
+                        ).hasAnyRole("STUDENT", "ADMIN")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/content/videos"
+                        ).hasRole("ADMIN")
+
+                        .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/uploads/quizzes/{quizId}/submit",
                                 "/api/test-papers"
@@ -265,10 +286,14 @@ public class SecurityConfig {
                         // -------------------------------------------------
                         .requestMatchers(HttpMethod.GET, "/api/test-series", "/api/test-series/**", "/api/test-papers/**")
                         .hasAnyRole("STUDENT", "ADMIN")
-                        .requestMatchers(HttpMethod.POST, "/api/test-series", "/api/test-series/**", "/api/test-papers/**")
+                        .requestMatchers(HttpMethod.GET, "/api/students/test-series/subscriptions")
+                        .hasAnyRole("STUDENT", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/students/test-series/subscriptions/**", "/api/admin/test-series/subscriptions/**")
                         .hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/admin/test-series/subscriptions/activate", "/api/test-series", "/api/test-series/**", "/api/test-papers/**")
+                        .hasAnyRole("ADMIN","STUDENT")
                         .requestMatchers(HttpMethod.PUT, "/api/test-series/**", "/api/test-papers/**", "/api/test-paper-questions/**")
-                        .hasRole("ADMIN")
+                        .hasAnyRole("ADMIN" , "STUDENT")
                         .requestMatchers(HttpMethod.DELETE, "/api/test-series/**", "/api/test-papers/**", "/api/test-paper-questions/**")
                         .hasRole("ADMIN")
 

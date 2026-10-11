@@ -4,6 +4,7 @@ import com.edtech.edtech_backend.dto.JwtAuthResponse;
 import com.edtech.edtech_backend.dto.LoginDto;
 import com.edtech.edtech_backend.dto.OtpVerificationRequestDto;
 import com.edtech.edtech_backend.dto.SignUpDto;
+import com.edtech.edtech_backend.dto.VerifyOtpDto;
 import com.edtech.edtech_backend.entity.User;
 import com.edtech.edtech_backend.exception.UserAlreadyExistsException;
 import com.edtech.edtech_backend.model.Role;
@@ -35,7 +36,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtils jwtUtils;
     private final EmailService emailService;
 
-    // In-memory cache for pending registrations
+    // In-memory cache for pending registrations and password resets
     private final Map<String, SignUpDto> pendingUsers = new ConcurrentHashMap<>();
     private final Map<String, String> otpStorage = new ConcurrentHashMap<>();
 
@@ -106,6 +107,38 @@ public class AuthServiceImpl implements AuthService {
         pendingUsers.remove(verificationDto.getEmail());
 
         return savedUser;
+    }
+
+    // --- Forgot-password methods ---
+    @Override
+    public void requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("Email not registered."));
+        String otp = generateOtp();
+        otpStorage.put(email, otp);
+
+        String subject = "Your OTP to reset password";
+        String body = "Your OTP to reset your EdTech account password is: " + otp + "\nThis OTP is valid for a short time.";
+
+        emailService.sendEmail(email, subject, body);
+    }
+
+    @Override
+    public void resetPassword(VerifyOtpDto verifyOtpDto) {
+        String storedOtp = otpStorage.get(verifyOtpDto.getEmail());
+        if (storedOtp == null || !storedOtp.equals(verifyOtpDto.getOtp())) {
+            throw new RuntimeException("Invalid OTP or OTP expired.");
+        }
+
+        User user = userRepository.findByEmail(verifyOtpDto.getEmail()).orElseThrow(() -> new RuntimeException("User not found."));
+        if (verifyOtpDto.getPassword() == null || verifyOtpDto.getPassword().isBlank()) {
+            throw new RuntimeException("Password must not be empty.");
+        }
+
+        user.setPassword(passwordEncoder.encode(verifyOtpDto.getPassword()));
+        userRepository.save(user);
+
+        // remove OTP after successful reset
+        otpStorage.remove(verifyOtpDto.getEmail());
     }
 
     private String generateOtp() {
